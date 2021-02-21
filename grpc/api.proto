@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package grpc_api;
+
+message MovieKey {
+  string id = 1;
+}
+
+message Movie {
+  string data = 1;
+}
+
+service serviceMovies {
+  rpc getMovie(MovieKey) returns (Movie);
+}
