@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/antchfx/htmlquery"
+	"gitlab.com/amyasnikov/movies/common"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
 )
@@ -18,13 +19,7 @@ var (
 	timeoutSeconds  = 1
 )
 
-type Movie struct {
-	Id      string
-	Name    string
-	Genres  []string
-	Similar []string
-	Photos  []string
-}
+type Movie = common.Movie
 
 type Parser struct {
 }

@@ -1,15 +1,32 @@
 syntax = "proto3";
 
-package grpc_api;
+package moviesgrpc;
+
+message Void {
+}
 
 message MovieKey {
   string id = 1;
 }
 
 message Movie {
-  string data = 1;
+  string id = 1;
+  string json = 2;
 }
 
-service serviceMovies {
+message Stats {
+  int32 moviesCount = 1;
+}
+
+message Response {
+  bool isOk = 1;
+  Stats stats = 2;
+  Movie movie = 3;
+}
+
+service MoviesStorage {
+  rpc getStats(Void) returns (Stats);
   rpc getMovie(MovieKey) returns (Movie);
+  rpc getMovieRandom(Void) returns (Movie);
+  rpc updateMovie(Movie) returns (Void);
 }

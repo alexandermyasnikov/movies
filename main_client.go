@@ -5,23 +5,17 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.com/amyasnikov/movies/grpc"
+	mg "gitlab.com/amyasnikov/movies/grpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-var port = ":8080"
-
-func AboutToSayIt(ctx context.Context, m grpc_api.ServiceMoviesClient, movieKey *grpc_api.MovieKey) (*grpc_api.Movie, error) {
-	movie, err := m.GetMovie(ctx, movieKey)
-	if err != nil {
-		return nil, err
-	}
-	return movie, nil
-}
+var (
+	host = ":8080"
+)
 
 func main() {
-	conn, err := grpc.Dial(port, grpc.WithInsecure())
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
 
 	if err != nil {
 		panic(err)
@@ -29,21 +23,28 @@ func main() {
 
 	defer conn.Close()
 
-	client := grpc_api.NewServiceMoviesClient(conn)
+	client := mg.NewMoviesStorageClient(conn)
 
-	request := &grpc_api.MovieKey{
+	request := &mg.MovieKey{
 		Id: "tt12345678",
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		time.Sleep(10 * time.Millisecond)
 		request.Id = "tt" + strconv.Itoa(i)
-		response, err := AboutToSayIt(context.Background(), client, request)
+		response, err := client.GetMovie(context.Background(), request)
 		if err != nil {
 			panic(err)
 		}
 		log.Println("request:", request.Id)
-		log.Println("response:", response.Data)
+		log.Println("response:", response.Json)
+	}
 
+	stats, err := client.GetStats(context.Background(), &mg.Void{})
+	if err != nil {
+		panic(err)
+	}
+	if stats != nil {
+		log.Println("stats:", stats, stats.MoviesCount)
 	}
 }
