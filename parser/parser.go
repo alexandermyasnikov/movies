@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
@@ -13,8 +13,9 @@ import (
 
 var (
 	host            = "https://imdb.com"
-	mediaIndexLimit = 0
-	lang            = "en"
+	mediaIndexLimit = 200
+	lang            = "ru"
+	timeoutSeconds  = 1
 )
 
 type Movie struct {
@@ -28,21 +29,27 @@ type Movie struct {
 type Parser struct {
 }
 
-func (parser *Parser) Search(limit int) chan Movie {
-	c := make(chan Movie, 1)
-	var wg sync.WaitGroup
+func (parser *Parser) Ids(limit int) <-chan string {
+	c := make(chan string, 1)
 	go func() {
-		for i := 1; i <= limit; i++ {
-			wg.Add(1)
-			go func(i int) {
-				movie := parser.searchOne(i)
-				if movie != nil {
-					c <- *movie
-				}
-				wg.Done()
-			}(i)
+		for start, offset := 1, -1; offset != 0 && start < limit; start += offset {
+			offset = parser.search(start, c)
 		}
-		wg.Wait()
+		close(c)
+	}()
+	return c
+}
+
+func (parser *Parser) Movies(limit int) <-chan Movie {
+	c := make(chan Movie, 1)
+	go func() {
+		for id := range parser.Ids(limit) {
+			movie := parser.Movie(id)
+			if movie != nil {
+				c <- *movie
+			}
+			time.Sleep(time.Duration(timeoutSeconds) * time.Second)
+		}
 		close(c)
 	}()
 	return c
@@ -74,24 +81,21 @@ func (parser *Parser) Movie(id string) *Movie {
 	return movie
 }
 
-func (parser *Parser) searchOne(start int) *Movie {
+func (parser *Parser) search(start int, c chan string) int {
 	url := host + "/search/title/?title_type=all&num_votes=100000,&view=simple&sort=num_votes,desc&start=" + strconv.Itoa(start)
 	doc, err := parser.getDoc(url)
 
 	if err != nil {
-		return nil
+		return 0
 	}
 
-	xpath := "//div[@class='lister-list']/div[1]/div/a/img/@data-tconst"
-	node := htmlquery.FindOne(doc, xpath)
+	ids := parser.getXpathList(doc, `//div[@class='lister-list']/div/div/a/img/@data-tconst`)
 
-	if node == nil {
-		return nil
+	for _, id := range ids {
+		c <- id
 	}
 
-	id := htmlquery.InnerText(node)
-
-	return parser.Movie(id)
+	return len(ids)
 }
 
 func (parser *Parser) mediaIndex(id string, page int) []string {

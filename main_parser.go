@@ -8,9 +8,7 @@ import (
 
 func main() {
 	p := parser.Parser{}
-	for movie := range p.Search(100) {
-		// log.Println("Movie.Id:", movie.Id)
-		// log.Println("Movie.name:", movie.Name)
-		log.Println("Movie:", movie.Name)
+	for movie := range p.Movies(500) {
+		log.Println("movie:", movie.Id, movie.Name, len(movie.Photos))
 	}
 }
