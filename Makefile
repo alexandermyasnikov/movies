@@ -9,5 +9,9 @@ depends:
 fmt:
 	gofmt -w -s -d .
 
+test:
+	go clean -testcache
+	go test -v ./storage
+
 clean:
 	rm -f ./build/*

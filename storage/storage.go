@@ -1,15 +1,9 @@
 package storage
 
 import (
-	"log"
-
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	"gitlab.com/amyasnikov/movies/common"
-)
-
-var (
-	connection string = "XXX"
 )
 
 type DB struct {
@@ -18,8 +12,8 @@ type DB struct {
 
 type Movie = common.Movie
 
-func NewDB() (*DB, error) {
-	options, err := pg.ParseURL(connection)
+func NewDB(url string) (*DB, error) {
+	options, err := pg.ParseURL(url)
 
 	if err != nil {
 		return nil, err
@@ -52,27 +46,45 @@ func (db *DB) CreateSchema() error {
 	return nil
 }
 
-func (db *DB) Insert(movie *Movie) error {
-	log.Println("insert: ", movie)
+func (db *DB) DropSchema() error {
+	models := []interface{}{
+		(*Movie)(nil),
+	}
 
+	for _, model := range models {
+		err := db.handle.Model(model).DropTable(&orm.DropTableOptions{
+			IfExists: true,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *DB) Insert(movie *Movie) error {
 	_, err := db.handle.Model(movie).OnConflict("(id) DO UPDATE").Insert()
 
 	return err
 }
 
-func (db *DB) Select(movie *Movie) error {
-	log.Println("Select:", movie)
+func (db *DB) Delete(movie *Movie) error {
+	_, err := db.handle.Model(movie).WherePK().Delete()
 
+	return err
+}
+
+func (db *DB) Select(movie *Movie) error {
 	return db.handle.Model(movie).WherePK().First()
 }
 
-func (db DB) Count() int {
-
-	return 0
+func (db DB) Count() (int, error) {
+	movie := &Movie{}
+	return db.handle.Model(movie).Count()
 }
 
 func (db *DB) Random(movie *Movie) error {
-	log.Println("Random:", movie)
-
 	return db.handle.Model(movie).OrderExpr("RANDOM()").First()
 }
