@@ -13,46 +13,59 @@ import (
 )
 
 var (
-	host            = "https://imdb.com"
-	mediaIndexLimit = 200
-	lang            = "ru"
-	timeoutSeconds  = 1
+	host           = "https://imdb.com"
+	DefaultOptions = Options{
+		MediaIndexLimit:     200,
+		Lang:                "en",
+		TimeoutMilliSeconds: 100,
+	}
 )
 
 type Movie = common.Movie
 
-type Parser struct {
+type Options struct {
+	MediaIndexLimit     int
+	Lang                string
+	TimeoutMilliSeconds int
 }
 
-func (parser *Parser) Ids(limit int) <-chan string {
+type Parser struct {
+	opts Options
+}
+
+func NewParser(opts Options) Parser {
+	return Parser{opts: opts}
+}
+
+func (p Parser) Ids(limit int) <-chan string {
 	c := make(chan string, 1)
 	go func() {
 		for start, offset := 1, -1; offset != 0 && start < limit; start += offset {
-			offset = parser.search(start, c)
+			offset = p.search(start, c)
 		}
 		close(c)
 	}()
 	return c
 }
 
-func (parser *Parser) Movies(limit int) <-chan Movie {
+func (p Parser) Movies(limit int) <-chan Movie {
 	c := make(chan Movie, 1)
 	go func() {
-		for id := range parser.Ids(limit) {
-			movie := parser.Movie(id)
+		for id := range p.Ids(limit) {
+			movie := p.Movie(id)
 			if movie != nil {
 				c <- *movie
 			}
-			time.Sleep(time.Duration(timeoutSeconds) * time.Second)
+			time.Sleep(time.Duration(p.opts.TimeoutMilliSeconds) * time.Millisecond)
 		}
 		close(c)
 	}()
 	return c
 }
 
-func (parser *Parser) Movie(id string) *Movie {
+func (p Parser) Movie(id string) *Movie {
 	url := host + "/title/" + id + "/"
-	doc, err := parser.getDoc(url)
+	doc, err := p.getDoc(url)
 
 	if err != nil {
 		return nil
@@ -60,13 +73,13 @@ func (parser *Parser) Movie(id string) *Movie {
 
 	movie := &Movie{
 		Id:      id,
-		Name:    parser.getXpath(doc, `//div[@id="ratingWidget"]/p/strong`),
-		Genres:  parser.getXpathList(doc, `//h4[contains(text(),'Genres:')]/following-sibling::a`),
-		Similar: parser.getXpathList(doc, `//div[@class='rec_view']//div[@class='rec_item']/@data-tconst`),
+		Name:    p.getXpath(doc, `//div[@id="ratingWidget"]/p/strong`),
+		Genres:  p.getXpathList(doc, `//h4[contains(text(),'Genres:')]/following-sibling::a`),
+		Similar: p.getXpathList(doc, `//div[@class='rec_view']//div[@class='rec_item']/@data-tconst`),
 	}
 
-	for i := 1; i <= mediaIndexLimit; i++ {
-		photos := parser.mediaIndex(id, i)
+	for i := 1; i <= p.opts.MediaIndexLimit; i++ {
+		photos := p.mediaIndex(id, i)
 		if len(photos) == 0 {
 			break
 		}
@@ -76,15 +89,15 @@ func (parser *Parser) Movie(id string) *Movie {
 	return movie
 }
 
-func (parser *Parser) search(start int, c chan string) int {
+func (p Parser) search(start int, c chan string) int {
 	url := host + "/search/title/?title_type=all&num_votes=100000,&view=simple&sort=num_votes,desc&start=" + strconv.Itoa(start)
-	doc, err := parser.getDoc(url)
+	doc, err := p.getDoc(url)
 
 	if err != nil {
 		return 0
 	}
 
-	ids := parser.getXpathList(doc, `//div[@class='lister-list']/div/div/a/img/@data-tconst`)
+	ids := p.getXpathList(doc, `//div[@class='lister-list']/div/div/a/img/@data-tconst`)
 
 	for _, id := range ids {
 		c <- id
@@ -93,15 +106,15 @@ func (parser *Parser) search(start int, c chan string) int {
 	return len(ids)
 }
 
-func (parser *Parser) mediaIndex(id string, page int) []string {
+func (p Parser) mediaIndex(id string, page int) []string {
 	url := host + "/title/" + id + "/mediaindex?refine=still_frame&page=" + strconv.Itoa(page)
-	doc, err := parser.getDoc(url)
+	doc, err := p.getDoc(url)
 
 	if err != nil {
 		return []string{}
 	}
 
-	photos := parser.getXpathList(doc, `//div[@class='media_index_thumb_list']//img/@src`)
+	photos := p.getXpathList(doc, `//div[@class='media_index_thumb_list']//img/@src`)
 
 	for i, photo := range photos {
 		photos[i] = strings.TrimRight(photo, ".jpg")
@@ -110,7 +123,7 @@ func (parser *Parser) mediaIndex(id string, page int) []string {
 	return photos
 }
 
-func (parser *Parser) getDoc(url string) (*html.Node, error) {
+func (p Parser) getDoc(url string) (*html.Node, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 
@@ -118,7 +131,10 @@ func (parser *Parser) getDoc(url string) (*html.Node, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Accept-Language", lang)
+	if p.opts.Lang != "" {
+		req.Header.Set("Accept-Language", p.opts.Lang)
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -135,8 +151,8 @@ func (parser *Parser) getDoc(url string) (*html.Node, error) {
 	return html.Parse(r)
 }
 
-func (parser *Parser) getXpath(doc *html.Node, xpath string) string {
-	values := parser.getXpathList(doc, xpath)
+func (p Parser) getXpath(doc *html.Node, xpath string) string {
+	values := p.getXpathList(doc, xpath)
 
 	if len(values) == 0 {
 		return ""
@@ -145,7 +161,7 @@ func (parser *Parser) getXpath(doc *html.Node, xpath string) string {
 	return values[0]
 }
 
-func (parser *Parser) getXpathList(doc *html.Node, xpath string) []string {
+func (p Parser) getXpathList(doc *html.Node, xpath string) []string {
 	ret := []string{}
 
 	node := htmlquery.Find(doc, xpath)

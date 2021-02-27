@@ -12,6 +12,7 @@ fmt:
 test:
 	go clean -testcache
 	go test -v ./storage
+	go test -v ./parser
 
 clean:
 	rm -f ./build/*
