@@ -1,158 +1,78 @@
 package storage
 
 import (
-	"database/sql"
 	"log"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
+	"gitlab.com/amyasnikov/movies/common"
+)
+
+var (
+	connection string = "XXX"
 )
 
 type DB struct {
-	Handle *sql.DB
+	handle *pg.DB
 }
 
-func NewDB(connectionString string) *DB {
-	handle, err := sql.Open("sqlite3", connectionString)
+type Movie = common.Movie
+
+func NewDB() (*DB, error) {
+	options, err := pg.ParseURL(connection)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	db := &DB{
-		Handle: handle,
-	}
-
-	return db
+	return &DB{
+		handle: pg.Connect(options),
+	}, nil
 }
 
-func (db DB) Close() {
-	db.Handle.Close()
+func (db *DB) Close() {
+	db.handle.Close()
 }
 
-func (db DB) CreateTableKV(name string) {
-	sql := `CREATE TABLE IF NOT EXISTS ` + name + ` (
-    key TEXT NOT NULL PRIMARY KEY,
-		value TEXT
-	  );`
-
-	stmt, err := db.Handle.Prepare(sql)
-
-	if err != nil {
-		log.Println(err)
-		return
+func (db *DB) CreateSchema() error {
+	models := []interface{}{
+		(*Movie)(nil),
 	}
 
-	_, err = stmt.Exec()
+	for _, model := range models {
+		err := db.handle.Model(model).CreateTable(&orm.CreateTableOptions{
+			IfNotExists: true,
+		})
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
-}
-
-func (db DB) InsertKV(name, key, value string) {
-	log.Println("insert: ", name, key, value)
-
-	sql := `INSERT OR REPLACE INTO ` + name + ` (key, value) VALUES (?, ?);`
-
-	stmt, err := db.Handle.Prepare(sql)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	_, err = stmt.Exec(key, value)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-}
-
-func (db DB) SelectKV(name, key string) (value string) {
-	log.Println("Select:", name, key)
-
-	sql := `SELECT value from ` + name + ` WHERE key = ? LIMIT 1;`
-
-	stmt, err := db.Handle.Prepare(sql)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	defer stmt.Close()
-
-	rows, err := stmt.Query(key)
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(&value)
 		if err != nil {
-			log.Println(err)
+			return err
 		}
 	}
 
-	return
+	return nil
 }
 
-func (db DB) Count(name string) (count int) {
-	sql := `SELECT count(*) from ` + name + ` LIMIT 1;`
+func (db *DB) Insert(movie *Movie) error {
+	log.Println("insert: ", movie)
 
-	stmt, err := db.Handle.Prepare(sql)
+	_, err := db.handle.Model(movie).OnConflict("(id) DO UPDATE").Insert()
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	return
+	return err
 }
 
-func (db DB) RandomKV(name string) (key, value string) {
-	log.Println("Random:", name, key)
+func (db *DB) Select(movie *Movie) error {
+	log.Println("Select:", movie)
 
-	sql := `SELECT key, value from ` + name + ` ORDER BY RANDOM() LIMIT 1;`
+	return db.handle.Model(movie).WherePK().First()
+}
 
-	stmt, err := db.Handle.Prepare(sql)
+func (db DB) Count() int {
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	return 0
+}
 
-	defer stmt.Close()
+func (db *DB) Random(movie *Movie) error {
+	log.Println("Random:", movie)
 
-	rows, err := stmt.Query()
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err = rows.Scan(&key, value)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	return
+	return db.handle.Model(movie).OrderExpr("RANDOM()").First()
 }

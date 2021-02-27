@@ -37,14 +37,6 @@ func main() {
 			panic(err)
 		}
 		log.Println("request:", request.Id)
-		log.Println("response:", response.Json)
-	}
-
-	stats, err := client.GetStats(context.Background(), &mg.Void{})
-	if err != nil {
-		panic(err)
-	}
-	if stats != nil {
-		log.Println("stats:", stats, stats.MoviesCount)
+		log.Println("response:", response.Name)
 	}
 }

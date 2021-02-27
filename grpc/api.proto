@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package moviesgrpc;
 
+option go_package = "grpc;moviesgrpc";
+
 message Void {
 }
 
@@ -10,8 +12,11 @@ message MovieKey {
 }
 
 message Movie {
-  string id = 1;
-  string json = 2;
+	string Id      = 1;
+	string Name    = 2;
+	repeated string Genres  = 3;
+	repeated string Similar = 4;
+	repeated string Photos  = 5;
 }
 
 message Stats {

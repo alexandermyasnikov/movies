@@ -9,7 +9,7 @@ depends:
 	go mod tidy
 
 grpc:
-	protoc -I . --go_out=plugins=grpc:. ./grpc/api.proto
+	protoc -I. --go_out=plugins=grpc:. ./grpc/api.proto
 
 fmt:
 	gofmt -w -s -d .

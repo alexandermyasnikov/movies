@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"gitlab.com/amyasnikov/movies/common"
 	mg "gitlab.com/amyasnikov/movies/grpc"
 	"gitlab.com/amyasnikov/movies/storage"
 	"google.golang.org/grpc"
@@ -15,36 +16,48 @@ type MoviesStorage struct {
 }
 
 var (
-	host   = ":8080"
-	MOVIES = "movies"
+	host = ":8080"
 )
 
 func (s MoviesStorage) GetStats(ctx context.Context, r *mg.Void) (*mg.Stats, error) {
 	ret := &mg.Stats{
-		MoviesCount: int32(s.db.Count(MOVIES)),
+		MoviesCount: int32(s.db.Count()),
 	}
 	return ret, nil
 }
 
 func (s MoviesStorage) GetMovie(ctx context.Context, r *mg.MovieKey) (*mg.Movie, error) {
-	response := &mg.Movie{
-		Json: s.db.SelectKV(MOVIES, r.Id),
+	movie := &common.Movie{
+		Id: r.Id,
 	}
-	return response, nil
+
+	err := s.db.Select(movie)
+
+	return &mg.Movie{
+		Id:      movie.Id,
+		Name:    movie.Name,
+		Genres:  movie.Genres,
+		Similar: movie.Similar,
+		Photos:  movie.Photos,
+	}, err
 }
 
 func (s MoviesStorage) GetMovieRandom(ctx context.Context, r *mg.Void) (*mg.Movie, error) {
-	_, v := s.db.RandomKV(MOVIES)
-	response := &mg.Movie{
-		Json: v,
-	}
-	return response, nil
+	// TODO
+	// _, v := s.db.RandomKV(MOVIES)
+	// response := &mg.Movie{
+	// 	Json: v,
+	// }
+	// return response, nil
+	return nil, nil
 }
 
 func (s MoviesStorage) UpdateMovie(ctx context.Context, r *mg.Movie) (*mg.Void, error) {
-	s.db.InsertKV(MOVIES, r.Id, r.Json)
-	response := &mg.Void{}
-	return response, nil
+	// TODO
+	// s.db.InsertKV(MOVIES, r.Id, r.Json)
+	// response := &mg.Void{}
+	// return response, nil
+	return nil, nil
 }
 
 func main() {
@@ -53,12 +66,17 @@ func main() {
 		log.Panic(err)
 	}
 
-	server := grpc.NewServer()
-	moviesStorage := MoviesStorage{
-		db: storage.NewDB("file:/tmp/imdb.db?cache=shared"),
+	db, err := storage.NewDB()
+	if err != nil {
+		log.Panic(err)
 	}
 
-	moviesStorage.db.CreateTableKV(MOVIES)
+	server := grpc.NewServer()
+	moviesStorage := MoviesStorage{
+		db: db,
+	}
+
+	moviesStorage.db.CreateSchema()
 
 	mg.RegisterMoviesStorageServer(server, moviesStorage)
 	server.Serve(listen)

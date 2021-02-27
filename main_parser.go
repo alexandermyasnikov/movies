@@ -45,7 +45,7 @@ func main() {
 		for movie := range p.Movies(500) {
 			log.Println("movie:", movie.Id, movie.Name, len(movie.Photos))
 			json, _ := json.Marshal(movie)
-			client.UpdateMovie(context.Background(), &mg.Movie{Id: movie.Id, Json: string(json)})
+			client.UpdateMovie(context.Background(), &mg.Movie{Id: movie.Id, Name: string(json)})
 		}
 	}
 }
