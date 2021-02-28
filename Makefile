@@ -11,8 +11,9 @@ fmt:
 
 test:
 	go clean -testcache
-	go test -v ./storage
-	go test -v ./parser
+	go test -race -v ./storage
+	go test -race -v ./parser
+	go test -race -v ./messages
 
 clean:
 	rm -f ./build/*
