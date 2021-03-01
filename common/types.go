@@ -7,3 +7,9 @@ type Movie struct {
 	Similar []string `json:"similar"`
 	Photos  []string `json:"photos"`
 }
+
+type StorageCountAPI struct {
+	Count int `json:"count"`
+}
+
+type StorageMovieAPI = Movie
