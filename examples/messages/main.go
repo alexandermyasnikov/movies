@@ -36,7 +36,7 @@ func main() {
 
 	switch name {
 	case "publish":
-		client := messages.NewClientN(url)
+		client := messages.NewClient(url)
 
 		ci := messages.ConsumerInfo{
 			Name:     "c1",
@@ -46,7 +46,7 @@ func main() {
 			Handler:  printHandle,
 		}
 
-		client.Consume(ci)
+		client.Consume(&ci)
 
 		for i := 0; i < 5; i++ {
 			log.Println("i:", i)

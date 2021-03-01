@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/streadway/amqp"
 	"gitlab.com/amyasnikov/movies/messages"
 )
 
@@ -16,7 +15,7 @@ var (
 )
 
 func TestSendSelf(t *testing.T) {
-	client := messages.NewClientN(url)
+	client := messages.NewClient(url)
 
 	var mu sync.Mutex
 	msgs := []string{}
@@ -26,10 +25,10 @@ func TestSendSelf(t *testing.T) {
 		Exchange: "exchange_test",
 		Queue:    "",
 		Keys:     []string{"#"},
-		Handler: func(d amqp.Delivery) bool {
+		Handler: func(m MessageD) bool {
 			mu.Lock()
 			defer mu.Unlock()
-			msgs = append(msgs, string(d.Body[:]))
+			msgs = append(msgs, string(m.Body))
 			return true
 		},
 	}
@@ -57,7 +56,7 @@ func TestSendSelf(t *testing.T) {
 }
 
 func TestManyConsumers(t *testing.T) {
-	client := messages.NewClientN(url)
+	client := messages.NewClient(url)
 
 	var mu sync.Mutex
 	msgs1 := []string{}
@@ -70,10 +69,10 @@ func TestManyConsumers(t *testing.T) {
 			Exchange: "exchange_test",
 			Queue:    "",
 			Keys:     []string{"topic_test1"},
-			Handler: func(d amqp.Delivery) bool {
+			Handler: func(m messages.MessageD) bool {
 				mu.Lock()
 				defer mu.Unlock()
-				msgs1 = append(msgs1, string(d.Body))
+				msgs1 = append(msgs1, string(m.Body))
 				return true
 			},
 		})
@@ -83,10 +82,10 @@ func TestManyConsumers(t *testing.T) {
 		Exchange: "exchange_test",
 		Queue:    "",
 		Keys:     []string{"topic_test2"},
-		Handler: func(d amqp.Delivery) bool {
+		Handler: func(m messages.MessageD) bool {
 			mu.Lock()
 			defer mu.Unlock()
-			msgs2 = append(msgs2, string(d.Body))
+			msgs2 = append(msgs2, string(m.Body))
 			return true
 		},
 	})
@@ -97,10 +96,10 @@ func TestManyConsumers(t *testing.T) {
 			Exchange: "exchange_test",
 			Queue:    "",
 			Keys:     []string{"topic_test1", "topic_test2", "topic_test3"},
-			Handler: func(d amqp.Delivery) bool {
+			Handler: func(m messages.MessageD) bool {
 				mu.Lock()
 				defer mu.Unlock()
-				msgs3 = append(msgs3, string(d.Body))
+				msgs3 = append(msgs3, string(m.Body))
 				return true
 			},
 		})

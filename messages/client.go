@@ -16,7 +16,7 @@ type MessageD = amqp.Delivery
 
 type Handler = func(m MessageD) bool
 
-type ClientN struct {
+type Client struct {
 	url string
 
 	errorChannel chan *amqp.Error
@@ -37,8 +37,8 @@ type ConsumerInfo struct {
 
 type messageConsumer func(string)
 
-func NewClientN(url string) *ClientN {
-	c := new(ClientN)
+func NewClient(url string) *Client {
+	c := new(Client)
 	c.url = url
 	c.consumers = make([]ConsumerInfo, 0)
 
@@ -48,7 +48,7 @@ func NewClientN(url string) *ClientN {
 	return c
 }
 
-func (c *ClientN) Send(exchange, key string, msg MessageP) {
+func (c *Client) Send(exchange, key string, msg MessageP) {
 	err := c.channel.Publish(
 		exchange, // exchange
 		key,      // routing key
@@ -59,21 +59,21 @@ func (c *ClientN) Send(exchange, key string, msg MessageP) {
 	logError("Sending message to queue failed", err)
 }
 
-func (c *ClientN) Consume(ci ConsumerInfo) {
+func (c *Client) Consume(ci *ConsumerInfo) {
 	log.Println("Registering consumer...")
 	deliveries, err := c.registerQueueConsumer(ci)
 	log.Println("Consumer registered! Processing messages...")
 	c.executeMessageConsumer(err, ci, deliveries, false)
 }
 
-func (c *ClientN) Close() {
+func (c *Client) Close() {
 	log.Println("Closing connection")
 	c.closed = true
 	c.channel.Close()
 	c.connection.Close()
 }
 
-func (c *ClientN) reconnector() {
+func (c *Client) reconnector() {
 	for {
 		err := <-c.errorChannel
 		if !c.closed {
@@ -85,7 +85,7 @@ func (c *ClientN) reconnector() {
 	}
 }
 
-func (c *ClientN) connect() {
+func (c *Client) connect() {
 	for {
 		log.Printf("Connecting to rabbitmq on %s\n", c.url)
 		conn, err := amqp.Dial(c.url)
@@ -106,7 +106,7 @@ func (c *ClientN) connect() {
 	}
 }
 
-func (c *ClientN) declareQueue(ci *ConsumerInfo) error {
+func (c *Client) declareQueue(ci *ConsumerInfo) error {
 	err := c.channel.ExchangeDeclare(
 		ci.Exchange,        // name
 		amqp.ExchangeTopic, // king
@@ -143,18 +143,22 @@ func (c *ClientN) declareQueue(ci *ConsumerInfo) error {
 		}
 	}
 
+	err = c.channel.QueueBind(ci.Queue, ci.Queue, ci.Exchange, false, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c *ClientN) openChannel() {
+func (c *Client) openChannel() {
 	channel, err := c.connection.Channel()
 	logError("Opening channel failed", err)
 	c.channel = channel
-	log.Println("set channel")
 }
 
-func (c *ClientN) registerQueueConsumer(ci ConsumerInfo) (<-chan amqp.Delivery, error) {
-	c.declareQueue(&ci)
+func (c *Client) registerQueueConsumer(ci *ConsumerInfo) (<-chan amqp.Delivery, error) {
+	c.declareQueue(ci)
 
 	log.Println("registerQueueConsumer:", ci.Queue, ci.Name)
 	msgs, err := c.channel.Consume(
@@ -170,10 +174,10 @@ func (c *ClientN) registerQueueConsumer(ci ConsumerInfo) (<-chan amqp.Delivery, 
 	return msgs, err
 }
 
-func (c *ClientN) executeMessageConsumer(err error, ci ConsumerInfo, deliveries <-chan amqp.Delivery, isRecovery bool) {
+func (c *Client) executeMessageConsumer(err error, ci *ConsumerInfo, deliveries <-chan amqp.Delivery, isRecovery bool) {
 	if err == nil {
 		if !isRecovery {
-			c.consumers = append(c.consumers, ci)
+			c.consumers = append(c.consumers, *ci)
 		}
 		go func() {
 			for delivery := range deliveries {
@@ -183,14 +187,14 @@ func (c *ClientN) executeMessageConsumer(err error, ci ConsumerInfo, deliveries 
 	}
 }
 
-func (c *ClientN) recoverConsumers() {
+func (c *Client) recoverConsumers() {
 	for i := range c.consumers {
 		var ci = c.consumers[i]
 
 		log.Println("Recovering consumer...")
-		msgs, err := c.registerQueueConsumer(ci)
+		msgs, err := c.registerQueueConsumer(&ci)
 		log.Println("Consumer recovered! Continuing message processing...")
-		c.executeMessageConsumer(err, ci, msgs, true)
+		c.executeMessageConsumer(err, &ci, msgs, true)
 	}
 }
 
