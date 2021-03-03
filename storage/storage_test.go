@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	url = "postgresql://postgres:postgres@127.0.0.1/test?sslmode=disable"
+	url = "postgresql://postgres:postgres@127.0.0.1:5433/test?sslmode=disable"
 )
 
 func newClearDB(url string) (*storage.DB, error) {
@@ -184,6 +184,46 @@ func TestSelectRandom(t *testing.T) {
 	}
 }
 
+func TestSelectRandomMany(t *testing.T) {
+	db, err := newClearDB(url)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer db.Close()
+
+	movie1 := &common.Movie{
+		Id: "id_1",
+	}
+
+	movie2 := &common.Movie{
+		Id: "id_2",
+	}
+
+	err = db.Insert(movie1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = db.Insert(movie2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	movies, err := db.RandomMany(2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(movies) != 2 {
+		t.Errorf("db.RandomMany().len = %v; want 2", len(movies))
+	}
+
+	if movies[0].Id == movies[1].Id {
+		t.Errorf("db.RandomMany(): movies[0] == movies[1]")
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	db, err := newClearDB(url)
 	if err != nil {
@@ -263,4 +303,66 @@ func TestSelectIfNotExists(t *testing.T) {
 	if err == nil { // we expect error
 		t.Error(err)
 	}
+}
+
+func TestQuiz(t *testing.T) {
+	db, err := newClearDB(url)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer db.Close()
+
+	movie1 := &common.Movie{
+		Id:      "id_1",
+		Name:    "movie_1",
+		Similar: []string{"id_3"},
+		Photos:  []string{"photo_1"},
+	}
+
+	movie2 := &common.Movie{
+		Id:      "id_2",
+		Name:    "movie_2",
+		Similar: []string{"id_3"},
+		Photos:  []string{"photo_2"},
+	}
+
+	movie3 := &common.Movie{
+		Id:     "id_3",
+		Name:   "movie_3",
+		Photos: []string{"photo_3"},
+	}
+
+	movie4 := &common.Movie{
+		Id:     "id_4",
+		Name:   "movie_4",
+		Photos: []string{"photo_4"},
+	}
+
+	err = db.Insert(movie1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = db.Insert(movie2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = db.Insert(movie3)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = db.Insert(movie4)
+	if err != nil {
+		t.Error(err)
+	}
+
+	quiz, err := db.Quiz(2, 1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(quiz)
 }
