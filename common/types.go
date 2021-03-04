@@ -15,8 +15,14 @@ type Quiz struct {
 	CorrectId int      `json:"correct_option_id"`
 }
 
-type StorageCountAPI struct {
-	Count int `json:"count"`
+type APIStorageInsertReq = Movie
+
+type APIStorageInsertResp struct {
 }
 
-type StorageMovieAPI = Movie
+type APIStorageQuizReq struct {
+	OptionsCount int `json:"optionsCount"`
+	SimilarCount int `json:"similarCount"`
+}
+
+type APIStorageQuizResp = Quiz

@@ -30,7 +30,7 @@ func main() {
 	client := messages.NewClient(rabbitmqURL)
 
 	handlerInsert := func(m messages.MessageD) bool {
-		var req common.StorageMovieAPI
+		var req common.APIStorageInsertReq
 		err := json.Unmarshal(m.Body, &req)
 		if err != nil {
 			log.Println(err)
@@ -55,6 +55,46 @@ func main() {
 	}
 
 	client.Consume(&ciInsert)
+
+	handlerQuiz := func(m messages.MessageD) bool {
+		var req common.APIStorageQuizReq
+		err := json.Unmarshal(m.Body, &req)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		quiz, err := db.Quiz(req.OptionsCount, req.SimilarCount)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		json, err := json.Marshal(quiz)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		msg := messages.MessageP{
+			ReplyTo:       ciInsert.Queue,
+			Body:          json,
+			CorrelationId: m.CorrelationId,
+		}
+		client.Send("movies", m.ReplyTo, msg)
+
+		return true
+	}
+
+	ciQuiz := messages.ConsumerInfo{
+		Name:     "",
+		Exchange: "movies",
+		Queue:    "",
+		Keys:     []string{"storage.quiz"},
+		Handler:  handlerQuiz,
+	}
+
+	client.Consume(&ciQuiz)
 
 	select {}
 }

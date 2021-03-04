@@ -4,6 +4,7 @@ build:
 	go build -race -o ./build/messages ./examples/messages/main.go
 	go build -race -o ./build/storage ./service/storage.go
 	go build -race -o ./build/parser ./service/parser.go
+	go build -race -o ./build/bot ./service/bot.go
 
 depends:
 	go mod tidy
