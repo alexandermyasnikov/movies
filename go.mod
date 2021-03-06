@@ -2,8 +2,6 @@ module movies
 
 go 1.16
 
-replace gitlab.com/amyasnikov/movies => /mnt/code/go/movies
-
 require (
 	github.com/antchfx/htmlquery v1.2.3
 	github.com/go-pg/pg/v10 v10.7.7
