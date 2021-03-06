@@ -61,7 +61,11 @@ make bot_docker
 
 ## Run (Docker)
 
-[docker-compose.yml example](./docker-compose.yml)
+[docker-compose.yml](./docker-compose.yml)
+
+```
+docker-compose up
+```
 
 
 
