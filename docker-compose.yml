@@ -1,0 +1,76 @@
+version: '2.0'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart:
+      always
+    networks:
+      - movies-net
+
+  postgresql:
+    image: postgres
+    container_name: postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=dev
+    restart:
+      always
+    networks:
+      - movies-net
+
+  storage:
+    image: movies_storage
+    container_name: movies_storage
+    environment:
+      - MOVIES_STORAGE_MESSAGESURL=amqp://guest:guest@rabbitmq:5672
+      - MOVIES_STORAGE_DATABASEURL=postgresql://postgres:postgres@postgresql/dev?sslmode=disable
+    restart:
+      always
+    networks:
+      - movies-net
+    depends_on:
+      - rabbitmq
+      - postgresql
+
+  parser:
+    image: movies_parser
+    container_name: movies_parser
+    environment:
+      - MOVIES_PARSER_MESSAGESURL=amqp://guest:guest@rabbitmq:5672
+      - MOVIES_PARSER_LANGUAGE=ru
+      - MOVIES_PARSER_TIMEOUTMSAFTERMOVIE=10000
+      - MOVIES_PARSER_TIMEOUTMSAFTERTASK=3600000
+      - MOVIES_PARSER_MEDIAINDEXLIMIT=200
+      - MOVIES_PARSER_MOVIESCOUNT=500
+    restart:
+      always
+    networks:
+      - movies-net
+    depends_on:
+      - rabbitmq
+
+  bot:
+    image: movies_bot
+    container_name: movies_bot
+    environment:
+      - MOVIES_BOT_MESSAGESURL=amqp://guest:guest@rabbitmq:5672
+      - MOVIES_BOT_TOKEN=XXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      - MOVIES_BOT_TIMEOUTMS=100
+      - MOVIES_BOT_OPTIONSCOUNT=7
+      - MOVIES_BOT_SIMILARCOUNT=2
+    restart:
+      always
+    networks:
+      - movies-net
+    depends_on:
+      - rabbitmq
+
+networks:
+  movies-net:
