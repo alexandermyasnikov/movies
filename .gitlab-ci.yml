@@ -1,0 +1,31 @@
+variables:
+  IMAGE_TAG_STORAGE:     $CI_REGISTRY/$CI_PROJECT_PATH/storage
+  IMAGE_TAG_STORAGE_SHA: $CI_REGISTRY/$CI_PROJECT_PATH/storage:$CI_COMMIT_SHORT_SHA
+  IMAGE_TAG_PARSER:      $CI_REGISTRY/$CI_PROJECT_PATH/parser
+  IMAGE_TAG_PARSER_SHA:  $CI_REGISTRY/$CI_PROJECT_PATH/parser:$CI_COMMIT_SHORT_SHA
+  IMAGE_TAG_BOT:         $CI_REGISTRY/$CI_PROJECT_PATH/bot
+  IMAGE_TAG_BOT_SHA:     $CI_REGISTRY/$CI_PROJECT_PATH/bot:$CI_COMMIT_SHORT_SHA
+
+stages:
+  - build
+
+before_script:
+  - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+image: docker:latest
+
+services:
+  - docker:dind
+
+build:
+  stage: build
+  script:
+    - docker build --target movies_storage -t $IMAGE_TAG_STORAGE -t $IMAGE_TAG_STORAGE_SHA .
+    - docker build --target movies_parser  -t $IMAGE_TAG_PARSER  -t $IMAGE_TAG_PARSER_SHA .
+    - docker build --target movies_bot     -t $IMAGE_TAG_BOT     -t $IMAGE_TAG_BOT_SHA .
+    - docker push $IMAGE_TAG_STORAGE
+    - docker push $IMAGE_TAG_STORAGE_SHA
+    - docker push $IMAGE_TAG_PARSER
+    - docker push $IMAGE_TAG_PARSER_SHA
+    - docker push $IMAGE_TAG_BOT
+    - docker push $IMAGE_TAG_BOT_SHA
