@@ -5,15 +5,14 @@ import (
 	"testing"
 
 	"gitlab.com/amyasnikov/movies/common"
-	"gitlab.com/amyasnikov/movies/storage"
 )
 
 var (
 	url = "postgresql://postgres:postgres@127.0.0.1:5433/test?sslmode=disable"
 )
 
-func newClearDB(url string) (*storage.DB, error) {
-	db, err := storage.NewDB(url)
+func newClearDB(url string) (*DB, error) {
+	db, err := NewDB(url)
 	if err != nil {
 		return nil, err
 	}
@@ -364,5 +363,15 @@ func TestQuiz(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Log(quiz)
+	if quiz.Question == "" {
+		t.Errorf("quiz.Question is empty")
+	}
+
+	if len(quiz.Options) != 2 {
+		t.Errorf("quiz.Options.len = %d; want 2", len(quiz.Options))
+	}
+
+	if quiz.Photo == "" {
+		t.Errorf("quiz.Photo is empty")
+	}
 }

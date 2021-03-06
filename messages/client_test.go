@@ -5,8 +5,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"gitlab.com/amyasnikov/movies/messages"
 )
 
 var (
@@ -15,12 +13,12 @@ var (
 )
 
 func TestSendSelf(t *testing.T) {
-	client := messages.NewClient(url)
+	client := NewClient(url)
 
 	var mu sync.Mutex
 	msgs := []string{}
 
-	ci := messages.ConsumerInfo{
+	ci := ConsumerInfo{
 		Name:     "c1",
 		Exchange: "exchange_test",
 		Queue:    "",
@@ -33,13 +31,13 @@ func TestSendSelf(t *testing.T) {
 		},
 	}
 
-	client.Consume(ci)
+	client.Consume(&ci)
 
 	time.Sleep(timeoutSleep)
 
-	client.Send("exchange_test", "test", messages.MessageP{Body: []byte("hello1")})
-	client.Send("exchange_test", "test", messages.MessageP{Body: []byte("hello2")})
-	client.Send("exchange_test", "test", messages.MessageP{Body: []byte("hello3")})
+	client.Send("exchange_test", "test", MessageP{Body: []byte("hello1")})
+	client.Send("exchange_test", "test", MessageP{Body: []byte("hello2")})
+	client.Send("exchange_test", "test", MessageP{Body: []byte("hello3")})
 
 	time.Sleep(timeoutSleep)
 
@@ -56,33 +54,32 @@ func TestSendSelf(t *testing.T) {
 }
 
 func TestManyConsumers(t *testing.T) {
-	client := messages.NewClient(url)
+	client := NewClient(url)
 
 	var mu sync.Mutex
 	msgs1 := []string{}
 	msgs2 := []string{}
 	msgs3 := []string{}
 
-	client.Consume(
-		messages.ConsumerInfo{
-			Name:     "c1",
-			Exchange: "exchange_test",
-			Queue:    "",
-			Keys:     []string{"topic_test1"},
-			Handler: func(m messages.MessageD) bool {
-				mu.Lock()
-				defer mu.Unlock()
-				msgs1 = append(msgs1, string(m.Body))
-				return true
-			},
-		})
+	client.Consume(&ConsumerInfo{
+		Name:     "c1",
+		Exchange: "exchange_test",
+		Queue:    "",
+		Keys:     []string{"topic_test1"},
+		Handler: func(m MessageD) bool {
+			mu.Lock()
+			defer mu.Unlock()
+			msgs1 = append(msgs1, string(m.Body))
+			return true
+		},
+	})
 
-	client.Consume(messages.ConsumerInfo{
+	client.Consume(&ConsumerInfo{
 		Name:     "c2",
 		Exchange: "exchange_test",
 		Queue:    "",
 		Keys:     []string{"topic_test2"},
-		Handler: func(m messages.MessageD) bool {
+		Handler: func(m MessageD) bool {
 			mu.Lock()
 			defer mu.Unlock()
 			msgs2 = append(msgs2, string(m.Body))
@@ -90,28 +87,27 @@ func TestManyConsumers(t *testing.T) {
 		},
 	})
 
-	client.Consume(
-		messages.ConsumerInfo{
-			Name:     "c3",
-			Exchange: "exchange_test",
-			Queue:    "",
-			Keys:     []string{"topic_test1", "topic_test2", "topic_test3"},
-			Handler: func(m messages.MessageD) bool {
-				mu.Lock()
-				defer mu.Unlock()
-				msgs3 = append(msgs3, string(m.Body))
-				return true
-			},
-		})
+	client.Consume(&ConsumerInfo{
+		Name:     "c3",
+		Exchange: "exchange_test",
+		Queue:    "",
+		Keys:     []string{"topic_test1", "topic_test2", "topic_test3"},
+		Handler: func(m MessageD) bool {
+			mu.Lock()
+			defer mu.Unlock()
+			msgs3 = append(msgs3, string(m.Body))
+			return true
+		},
+	})
 
 	time.Sleep(timeoutSleep)
 
-	client.Send("exchange_test", "topic_test1", messages.MessageP{Body: []byte("hello1")})
-	client.Send("exchange_test", "topic_test2", messages.MessageP{Body: []byte("hello2")})
-	client.Send("exchange_test", "topic_test3", messages.MessageP{Body: []byte("hello3")})
-	client.Send("exchange_test", "topic_test1", messages.MessageP{Body: []byte("hello4")})
-	client.Send("exchange_test", "topic_test2", messages.MessageP{Body: []byte("hello5")})
-	client.Send("exchange_test", "topic_test3", messages.MessageP{Body: []byte("hello6")})
+	client.Send("exchange_test", "topic_test1", MessageP{Body: []byte("hello1")})
+	client.Send("exchange_test", "topic_test2", MessageP{Body: []byte("hello2")})
+	client.Send("exchange_test", "topic_test3", MessageP{Body: []byte("hello3")})
+	client.Send("exchange_test", "topic_test1", MessageP{Body: []byte("hello4")})
+	client.Send("exchange_test", "topic_test2", MessageP{Body: []byte("hello5")})
+	client.Send("exchange_test", "topic_test3", MessageP{Body: []byte("hello6")})
 
 	time.Sleep(timeoutSleep)
 

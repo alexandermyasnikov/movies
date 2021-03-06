@@ -2,12 +2,10 @@ package parser
 
 import (
 	"testing"
-
-	"gitlab.com/amyasnikov/movies/parser"
 )
 
 func TestIdsCount(t *testing.T) {
-	p := parser.NewParser(parser.DefaultOptions)
+	p := NewParser(DefaultOptions)
 
 	count := 0
 	for range p.Ids(50) {
@@ -20,7 +18,7 @@ func TestIdsCount(t *testing.T) {
 }
 
 func TestMovie(t *testing.T) {
-	p := parser.NewParser(parser.DefaultOptions)
+	p := NewParser(DefaultOptions)
 
 	movie := p.Movie("tt0111161")
 
@@ -57,9 +55,9 @@ func TestMovie(t *testing.T) {
 }
 
 func TestMovieRu(t *testing.T) {
-	opts := parser.DefaultOptions
+	opts := DefaultOptions
 	opts.Lang = "ru"
-	p := parser.NewParser(opts)
+	p := NewParser(opts)
 
 	movie := p.Movie("tt0111161")
 

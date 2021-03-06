@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"gitlab.com/amyasnikov/movies/common"
@@ -10,13 +12,41 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var (
-	rabbitmqURL  = "amqp://guest:guest@127.0.0.1:5672"
-	token        = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-	timeoutMs    = 100
-	optionsCount = 7
-	similarCount = 2
-)
+type config struct {
+	messagesURL  string
+	token        string
+	timeoutMs    int
+	optionsCount int
+	similarCount int
+}
+
+func (c config) init() {
+	if c.messagesURL = os.Getenv("MOVIES_BOT_MESSAGESURL"); c.messagesURL == "" {
+		c.messagesURL = "amqp://guest:guest@127.0.0.1:5672"
+	}
+
+	if c.token = os.Getenv("MOVIES_BOT_TOKEN"); c.token == "" {
+		panic("MOVIES_BOT_TOKEN is empty")
+	}
+
+	if val := os.Getenv("MOVIES_BOT_TIMEOUTMS"); val == "" {
+		c.timeoutMs = 100
+	} else {
+		c.timeoutMs, _ = strconv.Atoi(val)
+	}
+
+	if val := os.Getenv("MOVIES_BOT_OPTIONSCOUNT"); val == "" {
+		c.optionsCount = 7
+	} else {
+		c.optionsCount, _ = strconv.Atoi(val)
+	}
+
+	if val := os.Getenv("MOVIES_BOT_SIMILARCOUNT"); val == "" {
+		c.similarCount = 2
+	} else {
+		c.similarCount, _ = strconv.Atoi(val)
+	}
+}
 
 func processHelp(bot *tb.Bot, m *tb.Message) {
 	text := "hello, " + m.Sender.FirstName + "\n"
@@ -30,17 +60,20 @@ func processUnknownCommand(bot *tb.Bot, m *tb.Message) {
 }
 
 func main() {
+	var cfg config
+	cfg.init()
+
 	bot, err := tb.NewBot(tb.Settings{
-		Token: token,
+		Token: cfg.token,
 		Poller: &tb.LongPoller{
-			Timeout: time.Duration(timeoutMs) * time.Millisecond},
+			Timeout: time.Duration(cfg.timeoutMs) * time.Millisecond},
 	})
 
 	if err != nil {
 		panic(err)
 	}
 
-	client := messages.NewClient(rabbitmqURL)
+	client := messages.NewClient(cfg.messagesURL)
 
 	handlerQuiz := func(m messages.MessageD) bool {
 		chat, err := bot.ChatByID(m.CorrelationId)
@@ -98,8 +131,8 @@ func main() {
 
 	handlerStart := func(m *tb.Message) {
 		req := common.APIStorageQuizReq{
-			OptionsCount: optionsCount,
-			SimilarCount: similarCount,
+			OptionsCount: cfg.optionsCount,
+			SimilarCount: cfg.similarCount,
 		}
 
 		json, err := json.Marshal(req)

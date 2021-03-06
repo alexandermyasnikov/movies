@@ -3,19 +3,33 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"os"
 
 	"gitlab.com/amyasnikov/movies/common"
 	"gitlab.com/amyasnikov/movies/messages"
 	"gitlab.com/amyasnikov/movies/storage"
 )
 
-var (
-	storageURL  = "postgresql://postgres:postgres@127.0.0.1/dev?sslmode=disable"
-	rabbitmqURL = "amqp://guest:guest@127.0.0.1:5672"
-)
+type config struct {
+	messagesURL string
+	databaseURL string
+}
+
+func (c config) init() {
+	if c.messagesURL = os.Getenv("MOVIES_STORAGE_MESSAGESURL"); c.messagesURL == "" {
+		c.messagesURL = "amqp://guest:guest@127.0.0.1:5672"
+	}
+
+	if c.databaseURL = os.Getenv("MOVIES_STORAGE_DATABASEURL"); c.databaseURL == "" {
+		c.databaseURL = "postgresql://postgres:postgres@127.0.0.1/dev?sslmode=disable"
+	}
+}
 
 func main() {
-	db, err := storage.NewDB(storageURL)
+	var cfg config
+	cfg.init()
+
+	db, err := storage.NewDB(cfg.databaseURL)
 	if err != nil {
 		log.Println(err)
 		return
@@ -27,7 +41,7 @@ func main() {
 		return
 	}
 
-	client := messages.NewClient(rabbitmqURL)
+	client := messages.NewClient(cfg.messagesURL)
 
 	handlerInsert := func(m messages.MessageD) bool {
 		var req common.APIStorageInsertReq

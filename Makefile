@@ -40,10 +40,21 @@ messages_example:
 
 
 storage_docker:
-	docker build --target storage_parser -t movies_storage .
+	docker build --target movies_storage -t movies_storage .
 
 parser_docker:
 	docker build --target movies_parser -t movies_parser .
 
 bot_docker:
 	docker build --target movies_bot -t movies_bot .
+
+
+
+dev_messages:
+	docker run -it --rm -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+
+dev_storage:
+	docker run -it --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=dev postgres
+
+dev_storage_test:
+	docker run -it --rm -p 5433:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=test postgres
