@@ -41,6 +41,12 @@ func (c *config) init() {
 		c.timeoutMsAfterTask, _ = strconv.Atoi(val)
 	}
 
+	if val := os.Getenv("MOVIES_PARSER_MEDIAINDEXLIMIT"); val == "" {
+		c.mediaIndexLimit = 200
+	} else {
+		c.mediaIndexLimit, _ = strconv.Atoi(val)
+	}
+
 	if val := os.Getenv("MOVIES_PARSER_MOVIESCOUNT"); val == "" {
 		c.moviesCount = 500
 	} else {
