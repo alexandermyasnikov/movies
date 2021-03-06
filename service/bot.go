@@ -20,7 +20,7 @@ type config struct {
 	similarCount int
 }
 
-func (c config) init() {
+func (c *config) init() {
 	if c.messagesURL = os.Getenv("MOVIES_BOT_MESSAGESURL"); c.messagesURL == "" {
 		c.messagesURL = "amqp://guest:guest@127.0.0.1:5672"
 	}
