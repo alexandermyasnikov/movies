@@ -44,7 +44,7 @@ services:
     container_name: movies_parser
     environment:
       - MOVIES_PARSER_MESSAGESURL=amqp://guest:guest@rabbitmq:5672
-      - MOVIES_PARSER_LANGUAGE=ru
+      - MOVIES_PARSER_LANGUAGE=ru-RU
       - MOVIES_PARSER_TIMEOUTMSAFTERMOVIE=10000
       - MOVIES_PARSER_TIMEOUTMSAFTERTASK=3600000
       - MOVIES_PARSER_MEDIAINDEXLIMIT=200

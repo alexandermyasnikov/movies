@@ -56,7 +56,7 @@ func TestMovie(t *testing.T) {
 
 func TestMovieRu(t *testing.T) {
 	opts := DefaultOptions
-	opts.Lang = "ru"
+	opts.Lang = "ru-RU"
 	p := NewParser(opts)
 
 	movie := p.Movie("tt0111161")

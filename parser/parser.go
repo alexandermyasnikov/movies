@@ -16,7 +16,7 @@ var (
 	host           = "https://imdb.com"
 	DefaultOptions = Options{
 		MediaIndexLimit:     200,
-		Lang:                "en",
+		Lang:                "en-US",
 		TimeoutMilliSeconds: 100,
 	}
 )

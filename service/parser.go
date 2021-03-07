@@ -26,7 +26,7 @@ func (c *config) init() {
 	}
 
 	if c.language = os.Getenv("MOVIES_PARSER_LANGUAGE"); c.language == "" {
-		c.language = "en"
+		c.language = "en-US"
 	}
 
 	if val := os.Getenv("MOVIES_PARSER_TIMEOUTMSAFTERMOVIE"); val == "" {
