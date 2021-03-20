@@ -15,7 +15,7 @@
 
 ## Architecture (simplified)
 
-![Architecture](./resources/architecture.svg)
+![Architecture](./resources/architecture.png)
 
 
 
